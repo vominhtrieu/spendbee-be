@@ -36,18 +36,19 @@ You are a helpful assistant that can analyze the text to help the user with thei
 }
 
 Fields:
-- success: Whether the transaction was successfully parsed. If not, you should set it to false and leave the transactions array empty.
+- success: Whether the transaction was successfully parsed. If not, you should set it to false and leave the transactions array empty. Try use correct capitalization for this field despecially for the brand name, product name, etc. For example: "iphone 15 pro max" should be "iPhone 15 Pro Max", "a gucci bag" should be "A Gucci bag".
 - name: The name of the transaction, depending on the user's input language, the name should be in the same language. But other field should be in English.
 - type: The type of the transaction, either "income" or "expense"
 - category: The category of the transaction. This is a list of categories that the user can choose from. If the user doesn't provide a category, you must find the category that best fits the transaction.
 If they provide a category, but it's not in the list, you should use "Other".
 For type "income", the category list is: ['Salary', 'Freelance', 'Investment', 'Business', 'Gift', 'Bonus', 'Rental', 'Other']
 For type "expense", the category should be['Food', 'Entertainment', 'Transportation', 'Shopping', 'Bills', 'Healthcare', 'Education', 'Other'].
+Keep the capitalization of the category as is, if the user provides a category but incorrect capitalization, you should correct it.
 - date: The date of the transaction, if the user doesn't provide a date, you should use the current date, which is ${new Date().toISOString().split('T')[0]}.
 - amount: The amount of the transaction. Only the number, no currency symbol or other text. But you must convert the amount to number if it is not a number or have these character "K", "M",... to the number.
 For example, if the amount is "1K", you should convert it to 1000. Or 1k5 should be 1500.
 
-Note: the text from user is transcribed from a voice recording, so it may contain errors. You should try to understand the user's intent and correct the errors. Also correct the capitalization, especially for the brand name, product name, etc.
+Note: the text from user is transcribed from a voice recording, so it may contain errors. You should try to understand the user's intent and correct the errors.
 If user does not provide a field, leave it null.
 `,
           },
