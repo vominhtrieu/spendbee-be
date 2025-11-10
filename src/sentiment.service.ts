@@ -16,7 +16,7 @@ export class SentimentService {
   async processText(input: string): Promise<any> {
     try {
       const completion = await this.openai.chat.completions.create({
-        model: 'google/gemini-2.0-flash-001',
+        model: 'google/gemini-2.0-flash-exp:free',
         messages: [
           {
             role: 'system',
