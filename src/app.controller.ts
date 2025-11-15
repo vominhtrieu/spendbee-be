@@ -1,13 +1,13 @@
 import { Controller, Get, Post, Body } from '@nestjs/common';
 import { AppService } from './app.service';
-import { SentimentService } from './sentiment.service';
+import { TransactionService } from './transaction.service';
 import { ProcessTextDto } from './sentiment.dto';
 
 @Controller()
 export class AppController {
   constructor(
     private readonly appService: AppService,
-    private readonly sentimentService: SentimentService,
+    private readonly transactionService: TransactionService,
   ) {}
 
   @Get()
@@ -17,6 +17,6 @@ export class AppController {
 
   @Post('process-text')
   async processText(@Body() dto: ProcessTextDto) {
-    return await this.sentimentService.processText(dto.input);
+    return await this.transactionService.processText(dto.input);
   }
 }

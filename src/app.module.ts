@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { SentimentService } from './sentiment.service';
+import { TransactionService } from './transaction.service';
 
 @Module({
   imports: [
@@ -11,6 +11,6 @@ import { SentimentService } from './sentiment.service';
     }),
   ],
   controllers: [AppController],
-  providers: [AppService, SentimentService],
+  providers: [AppService, TransactionService],
 })
 export class AppModule {}

@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 
 @Injectable()
-export class SentimentService {
+export class TransactionService {
   private openai: OpenAI;
 
   constructor(private configService: ConfigService) {
@@ -16,7 +16,7 @@ export class SentimentService {
   async processText(input: string): Promise<any> {
     try {
       const completion = await this.openai.chat.completions.create({
-        model: 'google/gemini-2.0-flash-001',
+        model: 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'system',
@@ -36,8 +36,8 @@ You are a helpful assistant that can analyze the text to help the user with thei
 }
 
 Fields:
-- success: Whether the transaction was successfully parsed. If not, you should set it to false and leave the transactions array empty. Try use correct capitalization for this field despecially for the brand name, product name, etc. For example: "iphone 15 pro max" should be "iPhone 15 Pro Max", "a gucci bag" should be "A Gucci bag".
-- name: The name of the transaction, depending on the user's input language, the name should be in the same language. But other field should be in English.
+- success: Whether the transaction was successfully parsed. If not, you should set it to false and leave the transactions array empty.
+- name: The name of the transaction, depending on the user's input language, the name should be in the same language. But other field should be in English. Try use correct capitalization for this field despecially for the brand name, product name, etc. For example: "iphone 15 pro max" should be "iPhone 15 Pro Max", "a gucci bag" should be "A Gucci bag".
 - type: The type of the transaction, either "income" or "expense"
 - category: The category of the transaction. This is a list of categories that the user can choose from. If the user doesn't provide a category, you must find the category that best fits the transaction.
 If they provide a category, but it's not in the list, you should use "Other".
