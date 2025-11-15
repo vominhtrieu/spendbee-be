@@ -37,7 +37,7 @@ You are a helpful assistant that can analyze the text to help the user with thei
 
 Fields:
 - success: Whether the transaction was successfully parsed. If not, you should set it to false and leave the transactions array empty.
-- name: The name of the transaction, depending on the user's input language, the name should be in the same language. But other field should be in English. Try use correct capitalization for this field despecially for the brand name, product name, etc. For example: "iphone 15 pro max" should be "iPhone 15 Pro Max", "a gucci bag" should be "A Gucci bag".
+- name: The name of the transaction, depending on the user's input language, the name should be in the same language. But other field should be in English. Try use correct capitalization for this field despecially for the brand name, product name, etc. For example: "iphone 15 pro max" should be "iPhone 15 Pro Max", "a gucci bag" should be "A Gucci bag". In unsual case, uppercase the first letter of the name if it's not a proper noun.
 - type: The type of the transaction, either "income" or "expense"
 - category: The category of the transaction. This is a list of categories that the user can choose from. If the user doesn't provide a category, you must find the category that best fits the transaction.
 If they provide a category, but it's not in the list, you should use "Other".
@@ -57,13 +57,11 @@ If user does not provide a field, leave it null.
             content: input,
           },
         ],
-        temperature: 0,
+        temperature: 1,
         response_format: { type: 'json_object' },
       });
 
-      const response = completion.choices[0]?.message?.content
-        ?.toLowerCase()
-        .trim();
+      const response = completion.choices[0]?.message?.content?.trim() || '{}';
 
       return JSON.parse(response || '{}');
     } catch (error) {
@@ -71,7 +69,7 @@ If user does not provide a field, leave it null.
       return {
         success: false,
         transactions: [],
-      }
+      };
     }
   }
 }
