@@ -17,6 +17,6 @@ export class AppController {
 
   @Post('process-text')
   async processText(@Body() dto: ProcessTextDto) {
-    return await this.transactionService.processText(dto.input);
+    return await this.transactionService.processText(dto.input, dto.type || 'auto');
   }
 }

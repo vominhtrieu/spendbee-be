@@ -13,7 +13,36 @@ export class TransactionService {
     });
   }
 
-  async processText(input: string): Promise<any> {
+  async processText(
+    input: string,
+    type: 'auto' | 'gemini' | 'manual',
+  ): Promise<any> {
+    try {
+      if (type === 'gemini') {
+        return await this.processTextWithGemini(input);
+      } else if (type === 'manual') {
+        return await this.processTextWithManual(input);
+      } else {
+        return await this.processTextAuto(input);
+      }
+    } catch (error) {
+      return {
+        success: false,
+        transactions: [],
+      };
+    }
+  }
+
+  async processTextAuto(input: string): Promise<any> {
+    let data = await this.processTextWithGemini(input);
+    if (data.success) {
+      return data;
+    } else {
+      return await this.processTextWithManual(input);
+    }
+  }
+
+  async processTextWithGemini(input: string): Promise<any> {
     try {
       const completion = await this.openai.chat.completions.create({
         model: 'google/gemini-2.5-flash',
@@ -65,7 +94,34 @@ If user does not provide a field, leave it null.
 
       return JSON.parse(response || '{}');
     } catch (error) {
-      console.error(error);
+      return {
+        success: false,
+        transactions: [],
+      };
+    }
+  }
+
+  async processTextWithManual(input: string): Promise<any> {
+    try {
+      const json = await fetch('http://localhost:8000/api/parse', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: input,
+        }),
+      });
+      const data = await json.json();
+      if (data.success) {
+        return data;
+      } else {
+        return {
+          success: false,
+          transactions: [],
+        };
+      }
+    } catch (error) {
       return {
         success: false,
         transactions: [],
