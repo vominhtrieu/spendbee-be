@@ -1,5 +1,5 @@
 export class ProcessTextDto {
   input: string;
-  type: 'auto' | 'gemini' | 'manual';
+  type: 'auto' | 'openrouter' | 'gemma3' | 'manual';
 }
 
