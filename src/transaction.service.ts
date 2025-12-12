@@ -27,7 +27,7 @@ export class TransactionService {
       if (type === 'openrouter') {
         return await this.processTextWithOpenRouter(input);
       } else if (type === 'gemma3') {
-        return await this.processTextWithGemma3(input);
+        return await this.processTextWithGemma3(input, 'gemma-3-27b-it');
       } else if (type === 'manual') {
         return await this.processTextWithManual(input);
       } else {
@@ -42,13 +42,25 @@ export class TransactionService {
   }
 
   async processTextAuto(input: string): Promise<any> {
-    let data = await this.processTextWithGemma3(input);
+    let data = await this.processTextWithGemma3(input, 'gemma-3-27b-it');
     if (data.success) {
       return data;
-    } else {
-      data = await this.processTextWithOpenRouter(input);
+    }
+
+    data = await this.processTextWithGemma3(input, 'gemma-3-12b-it');
+    if (data.success) {
       return data;
     }
+
+    data = await this.processTextWithOpenRouter(input);
+    if (data.success) {
+      return data;
+    }
+
+    return {
+      success: false,
+      transactions: [],
+    };
   }
 
   async processTextWithOpenRouter(input: string): Promise<any> {
@@ -81,13 +93,9 @@ export class TransactionService {
     }
   }
 
-  async processTextWithGemma3(input: string): Promise<any> {
-    console.log('Processing text with Gemma3');
-    const modelList = [
-      'gemma-3-27b-it',
-      'gemma-3-12b-it',
-    ];
-    const modelName = modelList[Math.floor(Math.random() * modelList.length)];
+  async processTextWithGemma3(input: string, modelName: string): Promise<any> {
+    console.log('Processing text with Gemma3 model: ', modelName);
+
     try {
       const model = this.genAI.getGenerativeModel({
         model: modelName,
