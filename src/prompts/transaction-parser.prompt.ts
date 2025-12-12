@@ -30,6 +30,7 @@ Keep the capitalization of the category as is, if the user provides a category b
 For example, if the amount is "1K", you should convert it to 1000. Or 1k5 should be 1500.
 
 If user does not provide a field, leave it null.
+YOU MUST RESPOND WITH A VALID JSON OBJECT, NO OTHER TEXT OR MARKDOWN.
 `;
 }
 

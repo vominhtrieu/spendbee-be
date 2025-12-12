@@ -17,6 +17,8 @@ export class AppController {
 
   @Post('process-text')
   async processText(@Body() dto: ProcessTextDto) {
-    return await this.transactionService.processText(dto.input, dto.type || 'auto');
+    const result = await this.transactionService.processText(dto.input, dto.type || 'auto');
+    console.log('Result: ', result.success ? 'Success' : 'Failed');
+    return result;
   }
 }
