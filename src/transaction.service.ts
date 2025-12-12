@@ -53,6 +53,7 @@ export class TransactionService {
 
   async processTextWithOpenRouter(input: string): Promise<any> {
     try {
+      console.log('Processing text with OpenRouter');
       const completion = await this.openai.chat.completions.create({
         model: 'google/gemini-2.5-flash',
         messages: [
@@ -81,6 +82,7 @@ export class TransactionService {
   }
 
   async processTextWithGemma3(input: string): Promise<any> {
+    console.log('Processing text with Gemma3');
     const modelList = [
       'gemma-3-27b-it',
       'gemma-3-12b-it',
