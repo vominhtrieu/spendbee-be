@@ -65,7 +65,7 @@ export class TransactionService {
 
   async processTextWithOpenRouter(input: string): Promise<any> {
     try {
-      console.log('Processing text with OpenRouter');
+      console.log(new Date(), 'Processing text with OpenRouter');
       const completion = await this.openai.chat.completions.create({
         model: 'google/gemini-2.5-flash',
         messages: [
@@ -94,7 +94,7 @@ export class TransactionService {
   }
 
   async processTextWithGemma3(input: string, modelName: string): Promise<any> {
-    console.log('Processing text with Gemma3 model: ', modelName);
+    console.log(new Date(), 'Processing text with Gemma3 model: ', modelName);
 
     try {
       const model = this.genAI.getGenerativeModel({
