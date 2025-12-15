@@ -38,6 +38,8 @@ export class TransactionService {
         result = await this.processTextWithManual(input);
       } else {
         result = await this.processTextAuto(input);
+        type = result.model;
+        delete result.model;
       }
 
       await this.recordLLMUsage(userId, type, result.success);
@@ -54,24 +56,19 @@ export class TransactionService {
   async processTextAuto(input: string): Promise<any> {
     let data = await this.processTextWithGemma3(input, 'gemma-3-27b-it');
     if (data.type != 'system') {
+      data.model = 'gemma-3-27b-it';
       return data;
     }
 
     data = await this.processTextWithGemma3(input, 'gemma-3-12b-it');
     if (data.type != 'system') {
+      data.model = 'gemma-3-12b-it';
       return data;
     }
 
     data = await this.processTextWithOpenRouter(input);
-    if (data.type != 'system') {
-      return data;
-    }
-
-    return {
-      success: false,
-      type: 'system',
-      transactions: [],
-    };
+    data.model = 'openrouter';
+    return data;
   }
 
   async processTextWithOpenRouter(input: string): Promise<any> {
