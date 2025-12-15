@@ -53,22 +53,23 @@ export class TransactionService {
 
   async processTextAuto(input: string): Promise<any> {
     let data = await this.processTextWithGemma3(input, 'gemma-3-27b-it');
-    if (data.success) {
+    if (data.type != 'system') {
       return data;
     }
 
     data = await this.processTextWithGemma3(input, 'gemma-3-12b-it');
-    if (data.success) {
+    if (data.type != 'system') {
       return data;
     }
 
     data = await this.processTextWithOpenRouter(input);
-    if (data.success) {
+    if (data.type != 'system') {
       return data;
     }
 
     return {
       success: false,
+      type: 'system',
       transactions: [],
     };
   }
@@ -98,6 +99,7 @@ export class TransactionService {
     } catch (error) {
       return {
         success: false,
+        type: 'system',
         transactions: [],
       };
     }
@@ -140,6 +142,7 @@ export class TransactionService {
       console.error('Error in processTextWithGemma3:', error);
       return {
         success: false,
+        type: 'system',
         transactions: [],
       };
     }
@@ -168,6 +171,7 @@ export class TransactionService {
     } catch (error) {
       return {
         success: false,
+        type: 'system',
         transactions: [],
       };
     }
