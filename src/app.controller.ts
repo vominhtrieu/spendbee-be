@@ -19,14 +19,21 @@ export class AppController {
   async ping(@Body() body: Record<string, any>, @Headers() headers: Record<string, string>) {
     console.log(new Date(), 'Request Headers: ', headers);
     console.log(new Date(), 'Request Body: ', body);
+
+    const installionId = body.installionId;
+    if (installionId) {
+      await this.appService.upsertUser(installionId);
+    }
+
     return { message: 'pong' };
   }
 
   @Post('process-text')
   async processText(@Body() dto: ProcessTextDto, @Headers() headers: Record<string, string>) {
-    console.log(new Date(), 'Request Headers: ', headers);
-    const result = await this.transactionService.processText(dto.input, dto.type || 'auto');
-    console.log(new Date(), 'Result: ', result.success ? 'Success' : 'Failed');
+    const user = dto.installionId
+      ? await this.appService.upsertUser(dto.installionId)
+      : null;
+    const result = await this.transactionService.processText(dto.input, dto.type || 'auto', user?.id);
     return result;
   }
 }

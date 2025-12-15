@@ -10,6 +10,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id            String   @id @default(uuid())
+  installionId  String   @unique
+  lastAccess    DateTime @default(now()) @updatedAt
+  createdAt     DateTime @default(now())
+
+  @@map("users")
+}
+
 model LLMUsage {
   id        String   @id @default(uuid())
   userId    String?

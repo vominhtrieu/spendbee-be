@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "users" ALTER COLUMN "lastAccess" SET DEFAULT CURRENT_TIMESTAMP;
