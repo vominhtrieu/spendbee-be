@@ -42,6 +42,10 @@ lerna-debug.log*
 .env.production.local
 .env.local
 
+# Prisma
+/prisma/dev.db
+/prisma/dev.db-journal
+
 # temp directory
 .temp
 .tmp

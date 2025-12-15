@@ -3,13 +3,17 @@ import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getTransactionParserPrompt } from './prompts/transaction-parser.prompt';
+import { PrismaService } from './prisma/prisma.service';
 
 @Injectable()
 export class TransactionService {
   private openai: OpenAI;
   private genAI: GoogleGenerativeAI;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private prisma: PrismaService,
+  ) {
     this.openai = new OpenAI({
       baseURL: 'https://openrouter.ai/api/v1',
       apiKey: this.configService.get<string>('OPENAI_API_KEY'),
@@ -22,18 +26,24 @@ export class TransactionService {
   async processText(
     input: string,
     type: 'auto' | 'openrouter' | 'gemma3' | 'manual',
+    userId?: string,
   ): Promise<any> {
     try {
+      let result;
       if (type === 'openrouter') {
-        return await this.processTextWithOpenRouter(input);
+        result = await this.processTextWithOpenRouter(input);
       } else if (type === 'gemma3') {
-        return await this.processTextWithGemma3(input, 'gemma-3-27b-it');
+        result = await this.processTextWithGemma3(input, 'gemma-3-27b-it');
       } else if (type === 'manual') {
-        return await this.processTextWithManual(input);
+        result = await this.processTextWithManual(input);
       } else {
-        return await this.processTextAuto(input);
+        result = await this.processTextAuto(input);
       }
+
+      await this.recordLLMUsage(userId, type, result.success);
+      return result;
     } catch (error) {
+      await this.recordLLMUsage(userId, type, false);
       return {
         success: false,
         transactions: [],
@@ -160,6 +170,24 @@ export class TransactionService {
         success: false,
         transactions: [],
       };
+    }
+  }
+
+  private async recordLLMUsage(
+    userId: string | undefined,
+    modelName: string,
+    success: boolean,
+  ): Promise<void> {
+    try {
+      await this.prisma.lLMUsage.create({
+        data: {
+          userId,
+          modelName,
+          success,
+        },
+      });
+    } catch (error) {
+      console.error('Error recording LLM usage:', error);
     }
   }
 }

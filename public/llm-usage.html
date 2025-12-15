@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LLM Usage Dashboard</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          'Helvetica Neue', Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40px 30px;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+
+      .header p {
+        font-size: 16px;
+        opacity: 0.9;
+      }
+
+      .content {
+        padding: 30px;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .stat-card {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        border-left: 4px solid #667eea;
+      }
+
+      .stat-card h3 {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .stat-card .value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #333;
+      }
+
+      .controls {
+        margin-bottom: 20px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .controls button {
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: background 0.3s;
+      }
+
+      .controls button:hover {
+        background: #764ba2;
+      }
+
+      .controls button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+      }
+
+      .loading::after {
+        content: '';
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-left: 10px;
+        vertical-align: middle;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .error {
+        background: #fee;
+        border: 1px solid #fcc;
+        color: #c33;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+
+      thead {
+        background: #f8f9fa;
+        border-bottom: 2px solid #e0e0e0;
+      }
+
+      th {
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      td {
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+        font-size: 14px;
+        color: #555;
+      }
+
+      tbody tr:hover {
+        background: #f8f9fa;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+
+      .badge.success {
+        background: #d4edda;
+        color: #155724;
+      }
+
+      .badge.error {
+        background: #f8d7da;
+        color: #721c24;
+      }
+
+      .pagination {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        align-items: center;
+        margin-top: 30px;
+      }
+
+      .pagination button {
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .pagination button:hover:not(:disabled) {
+        background: #764ba2;
+      }
+
+      .pagination button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+
+      .pagination .page-info {
+        color: #666;
+        font-size: 14px;
+      }
+
+      .empty {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+      }
+
+      .empty-icon {
+        font-size: 48px;
+        margin-bottom: 20px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>📊 LLM Usage Dashboard</h1>
+        <p>Track and monitor your language model usage</p>
+      </div>
+
+      <div class="content">
+        <div class="stats">
+          <div class="stat-card">
+            <h3>Total Requests</h3>
+            <div class="value" id="totalCount">0</div>
+          </div>
+          <div class="stat-card">
+            <h3>Success Rate</h3>
+            <div class="value" id="successRate">0%</div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button onclick="loadData(true)">🔄 Refresh</button>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+        <div id="loading" class="loading" style="display: none;">Loading data</div>
+
+        <div id="tableContainer">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Model Name</th>
+                <th>Status</th>
+                <th>User ID</th>
+                <th>Created At</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <tr>
+                <td colspan="5" style="text-align: center; color: #999;">
+                  No data loaded yet
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          <button id="prevBtn" onclick="previousPage()">← Previous</button>
+          <span class="page-info">
+            Page <span id="currentPage">1</span> of <span id="totalPages">1</span>
+          </span>
+          <button id="nextBtn" onclick="nextPage()">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const itemsPerPage = 10;
+      let currentPage = 1;
+      let totalItems = 0;
+      let allData = [];
+
+      async function loadData(reset = false) {
+        if (reset) {
+          currentPage = 1;
+        }
+
+        const offset = (currentPage - 1) * itemsPerPage;
+        const loading = document.getElementById('loading');
+        const errorDiv = document.getElementById('error');
+        const tableContainer = document.getElementById('tableContainer');
+
+        loading.style.display = 'block';
+        errorDiv.style.display = 'none';
+        tableContainer.style.display = 'none';
+
+        try {
+          const response = await fetch(
+            `/llm-usage?limit=${itemsPerPage}&offset=${offset}`,
+          );
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const result = await response.json();
+          totalItems = result.total;
+          allData = result.data;
+
+          updateStats();
+          renderTable();
+          updatePagination();
+
+          tableContainer.style.display = 'block';
+        } catch (error) {
+          console.error('Error loading data:', error);
+          errorDiv.textContent = `Error loading data: ${error.message}`;
+          errorDiv.style.display = 'block';
+        } finally {
+          loading.style.display = 'none';
+        }
+      }
+
+      function updateStats() {
+        const total = totalItems;
+        const successful = allData.filter((item) => item.success).length;
+        const successRate =
+          total > 0
+            ? Math.round((
+                allData.filter((item) => item.success).length / allData.length
+              ) * 100)
+            : 0;
+
+        document.getElementById('totalCount').textContent = total.toLocaleString();
+        document.getElementById('successRate').textContent = successRate + '%';
+      }
+
+      function renderTable() {
+        const tbody = document.getElementById('tableBody');
+
+        if (allData.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="5" style="text-align: center; color: #999; padding: 40px;">
+                <div class="empty-icon">📭</div>
+                <div>No data available</div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = allData
+          .map(
+            (item) => `
+          <tr>
+            <td><code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 12px;">${item.id.substring(0, 8)}...</code></td>
+            <td><strong>${item.modelName}</strong></td>
+            <td>
+              <span class="badge ${item.success ? 'success' : 'error'}">
+                ${item.success ? '✓ Success' : '✗ Failed'}
+              </span>
+            </td>
+            <td>${item.userId || '—'}</td>
+            <td>${new Date(item.createdAt).toLocaleString()}</td>
+          </tr>
+        `,
+          )
+          .join('');
+      }
+
+      function updatePagination() {
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        document.getElementById('totalPages').textContent = totalPages || 1;
+        document.getElementById('currentPage').textContent = currentPage;
+
+        document.getElementById('prevBtn').disabled = currentPage === 1;
+        document.getElementById('nextBtn').disabled =
+          currentPage >= totalPages;
+      }
+
+      function previousPage() {
+        if (currentPage > 1) {
+          currentPage--;
+          loadData();
+        }
+      }
+
+      function nextPage() {
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        if (currentPage < totalPages) {
+          currentPage++;
+          loadData();
+        }
+      }
+
+      // Load data on page load
+      window.addEventListener('load', () => loadData());
+
+      // Auto-refresh every 30 seconds
+      setInterval(() => loadData(), 30000);
+    </script>
+  </body>
+</html>
