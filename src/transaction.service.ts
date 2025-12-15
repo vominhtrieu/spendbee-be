@@ -28,6 +28,7 @@ export class TransactionService {
     type: 'auto' | 'openrouter' | 'gemma3' | 'manual',
     userId?: string,
   ): Promise<any> {
+    const startTime = Date.now();
     try {
       let result;
       if (type === 'openrouter') {
@@ -42,10 +43,12 @@ export class TransactionService {
         delete result.model;
       }
 
-      await this.recordLLMUsage(userId, type, result.success);
+      const duration = Date.now() - startTime;
+      await this.recordLLMUsage(userId, type, result.success, duration);
       return result;
     } catch (error) {
-      await this.recordLLMUsage(userId, type, false);
+      const duration = Date.now() - startTime;
+      await this.recordLLMUsage(userId, type, false, duration);
       return {
         success: false,
         transactions: [],
@@ -178,6 +181,7 @@ export class TransactionService {
     userId: string | undefined,
     modelName: string,
     success: boolean,
+    duration?: number,
   ): Promise<void> {
     try {
       await this.prisma.lLMUsage.create({
@@ -185,6 +189,7 @@ export class TransactionService {
           userId,
           modelName,
           success,
+          duration,
         },
       });
     } catch (error) {

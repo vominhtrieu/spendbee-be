@@ -15,6 +15,7 @@ model LLMUsage {
   userId    String?
   modelName String
   success   Boolean
+  duration  Int?
   createdAt DateTime @default(now())
 
   @@map("llm_usage")
