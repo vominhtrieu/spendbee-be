@@ -12,7 +12,7 @@ datasource db {
 
 model User {
   id            String   @id @default(uuid())
-  installionId  String   @unique
+  installationId  String   @unique
   lastAccess    DateTime @default(now()) @updatedAt
   createdAt     DateTime @default(now())
 

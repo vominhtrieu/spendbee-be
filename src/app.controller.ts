@@ -20,9 +20,9 @@ export class AppController {
     console.log(new Date(), 'Request Headers: ', headers);
     console.log(new Date(), 'Request Body: ', body);
 
-    const installionId = body.installionId;
-    if (installionId) {
-      await this.appService.upsertUser(installionId);
+    const installationId = body.installationId;
+    if (installationId) {
+      await this.appService.upsertUser(installationId);
     }
 
     return { message: 'pong' };
@@ -30,8 +30,8 @@ export class AppController {
 
   @Post('process-text')
   async processText(@Body() dto: ProcessTextDto, @Headers() headers: Record<string, string>) {
-    const user = dto.installionId
-      ? await this.appService.upsertUser(dto.installionId)
+    const user = dto.installationId
+      ? await this.appService.upsertUser(dto.installationId)
       : null;
     const result = await this.transactionService.processText(dto.input, dto.type || 'auto', user?.id);
     return result;
