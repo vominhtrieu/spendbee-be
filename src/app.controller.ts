@@ -22,7 +22,8 @@ export class AppController {
 
     const installationId = body.installationId;
     if (installationId) {
-      await this.appService.upsertUser(installationId);
+      const user = await this.appService.upsertUser(installationId);
+      await this.appService.recordInteraction(user.id, 'ping');
     }
 
     return { message: 'pong' };
@@ -33,6 +34,11 @@ export class AppController {
     const user = dto.installationId
       ? await this.appService.upsertUser(dto.installationId)
       : null;
+    
+    if (user) {
+      await this.appService.recordInteraction(user.id, 'llm_usage');
+    }
+    
     const result = await this.transactionService.processText(dto.input, dto.type || 'auto', user?.id);
     return result;
   }

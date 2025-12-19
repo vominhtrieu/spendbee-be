@@ -17,4 +17,18 @@ export class AppService {
       create: { installationId, lastAccess: now },
     });
   }
+
+  async recordInteraction(userId: string, type: 'ping' | 'llm_usage'): Promise<void> {
+    // Check if user exists
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    // Only record interaction if user exists
+    if (user) {
+      await this.prisma.interaction.create({
+        data: { userId, type },
+      });
+    }
+  }
 }

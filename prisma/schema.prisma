@@ -29,3 +29,17 @@ model LLMUsage {
 
   @@map("llm_usage")
 }
+
+model Interaction {
+  id        String            @id @default(uuid())
+  userId    String
+  type      InteractionType
+  createdAt DateTime          @default(now())
+
+  @@map("interactions")
+}
+
+enum InteractionType {
+  ping
+  llm_usage
+}
