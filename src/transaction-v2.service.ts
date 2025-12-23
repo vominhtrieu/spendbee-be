@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { getTransactionParserPrompt } from './prompts/transaction-parser.prompt';
+import { getTransactionParserPromptV2 } from './prompts/transaction-parser.prompt';
 import { PrismaService } from './prisma/prisma.service';
 
 @Injectable()
-export class TransactionService {
+export class TransactionServiceV2 {
   private openai: OpenAI;
   private genAI: GoogleGenerativeAI;
 
@@ -27,18 +27,33 @@ export class TransactionService {
     input: string,
     type: 'auto' | 'openrouter' | 'gemma3' | 'manual',
     userId?: string,
+    incomeCategories?: string[],
+    expenseCategories?: string[],
   ): Promise<any> {
     const startTime = Date.now();
     try {
       let result;
       if (type === 'openrouter') {
-        result = await this.processTextWithOpenRouter(input);
+        result = await this.processTextWithOpenRouter(
+          input,
+          incomeCategories,
+          expenseCategories,
+        );
       } else if (type === 'gemma3') {
-        result = await this.processTextWithGemma3(input, 'gemma-3-27b-it');
+        result = await this.processTextWithGemma3(
+          input,
+          'gemma-3-27b-it',
+          incomeCategories,
+          expenseCategories,
+        );
       } else if (type === 'manual') {
         result = await this.processTextWithManual(input);
       } else {
-        result = await this.processTextAuto(input);
+        result = await this.processTextAuto(
+          input,
+          incomeCategories,
+          expenseCategories,
+        );
         type = result.model;
         delete result.model;
       }
@@ -58,10 +73,14 @@ export class TransactionService {
 
   async processTextAuto(
     input: string,
+    incomeCategories?: string[],
+    expenseCategories?: string[],
   ): Promise<any> {
     let data = await this.processTextWithGemma3(
       input,
       'gemma-3-27b-it',
+      incomeCategories,
+      expenseCategories,
     );
     if (data.type != 'system') {
       data.model = 'gemma-3-27b-it';
@@ -71,6 +90,8 @@ export class TransactionService {
     data = await this.processTextWithGemma3(
       input,
       'gemma-3-12b-it',
+      incomeCategories,
+      expenseCategories,
     );
     if (data.type != 'system') {
       data.model = 'gemma-3-12b-it';
@@ -79,12 +100,18 @@ export class TransactionService {
 
     data = await this.processTextWithOpenRouter(
       input,
+      incomeCategories,
+      expenseCategories,
     );
     data.model = 'openrouter';
     return data;
   }
 
-  async processTextWithOpenRouter(input: string): Promise<any> {
+  async processTextWithOpenRouter(
+    input: string,
+    incomeCategories?: string[],
+    expenseCategories?: string[],
+  ): Promise<any> {
     try {
       console.log(new Date(), 'Processing text with OpenRouter');
       const completion = await this.openai.chat.completions.create({
@@ -92,7 +119,11 @@ export class TransactionService {
         messages: [
           {
             role: 'system',
-            content: getTransactionParserPrompt(undefined),
+            content: getTransactionParserPromptV2(
+              undefined,
+              incomeCategories,
+              expenseCategories,
+            ),
           },
           {
             role: 'user',
@@ -118,6 +149,8 @@ export class TransactionService {
   async processTextWithGemma3(
     input: string,
     modelName: string,
+    incomeCategories?: string[],
+    expenseCategories?: string[],
   ): Promise<any> {
     console.log(new Date(), 'Processing text with Gemma3 model: ', modelName);
 
@@ -126,7 +159,11 @@ export class TransactionService {
         model: modelName,
       });
 
-      const systemPrompt = getTransactionParserPrompt(undefined);
+      const systemPrompt = getTransactionParserPromptV2(
+        undefined,
+        incomeCategories,
+        expenseCategories,
+      );
 
       const result = await model.generateContent([
         { text: systemPrompt },
@@ -210,3 +247,5 @@ export class TransactionService {
     }
   }
 }
+
+

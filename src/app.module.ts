@@ -4,6 +4,7 @@ import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TransactionService } from './transaction.service';
+import { TransactionServiceV2 } from './transaction-v2.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { LLMUsageModule } from './llm-usage/llm-usage.module';
 
@@ -16,6 +17,6 @@ import { LLMUsageModule } from './llm-usage/llm-usage.module';
     LLMUsageModule,
   ],
   controllers: [AppController],
-  providers: [AppService, TransactionService],
+  providers: [AppService, TransactionService, TransactionServiceV2],
 })
 export class AppModule {}
