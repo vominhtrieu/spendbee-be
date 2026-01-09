@@ -9,12 +9,12 @@ export class AppService {
     return 'Hello World!';
   }
 
-  async upsertUser(installationId: string) {
+  async upsertUser(installationId: string, appVersion?: string) {
     const now = new Date();
     return this.prisma.user.upsert({
       where: { installationId },
-      update: { lastAccess: now },
-      create: { installationId, lastAccess: now },
+      update: { lastAccess: now, appVersion: appVersion || 'unknown' },
+      create: { installationId, lastAccess: now, appVersion: appVersion || 'unknown' },
     });
   }
 

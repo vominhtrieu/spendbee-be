@@ -24,8 +24,9 @@ export class AppController {
     console.log(new Date(), 'Request Body: ', body);
 
     const installationId = body.installationId;
+    const appVersion = body.appVersion;
     if (installationId) {
-      const user = await this.appService.upsertUser(installationId);
+      const user = await this.appService.upsertUser(installationId, appVersion);
       await this.appService.recordInteraction(user.id, 'ping');
     }
 
