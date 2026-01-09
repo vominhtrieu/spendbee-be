@@ -5,4 +5,4 @@
 
 */
 -- AlterTable
-ALTER TABLE "users" ADD COLUMN     "appVersion" TEXT NOT NULL;
+ALTER TABLE "users" ADD COLUMN     "appVersion" TEXT NOT NULL DEFAULT 'unknown';
