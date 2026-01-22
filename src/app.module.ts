@@ -7,6 +7,7 @@ import { TransactionService } from './transaction.service';
 import { TransactionServiceV2 } from './transaction-v2.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { LLMUsageModule } from './llm-usage/llm-usage.module';
+import { TransactionServiceV3 } from './transaction-v3.service';
 
 @Module({
   imports: [
@@ -17,6 +18,6 @@ import { LLMUsageModule } from './llm-usage/llm-usage.module';
     LLMUsageModule,
   ],
   controllers: [AppController],
-  providers: [AppService, TransactionService, TransactionServiceV2],
+  providers: [AppService, TransactionService, TransactionServiceV2, TransactionServiceV3],
 })
 export class AppModule {}

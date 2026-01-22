@@ -1,9 +1,23 @@
-import { Controller, Get, Post, Body, Headers } from '@nestjs/common';
+import { Controller, Get, Post, Body, Headers, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AppService } from './app.service';
 import { TransactionService } from './transaction.service';
 import { TransactionServiceV2 } from './transaction-v2.service';
-import { ProcessTextDto, ProcessTextV2Dto } from './sentiment.dto';
+import { ProcessTextDto, ProcessTextV2Dto, ProcessAudioDto } from './sentiment.dto';
 import { BadRequestException } from '@nestjs/common';
+import { TransactionServiceV3 } from './transaction-v3.service';
+
+interface MulterFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  buffer: Buffer;
+  destination?: string;
+  filename?: string;
+  path?: string;
+}
 
 @Controller()
 export class AppController {
@@ -11,6 +25,7 @@ export class AppController {
     private readonly appService: AppService,
     private readonly transactionService: TransactionService,
     private readonly transactionServiceV2: TransactionServiceV2,
+    private readonly transactionServiceV3: TransactionServiceV3,
   ) { }
 
   @Get()
@@ -38,11 +53,11 @@ export class AppController {
     const user = dto.installationId
       ? await this.appService.upsertUser(dto.installationId)
       : null;
-    
+
     if (user) {
       await this.appService.recordInteraction(user.id, 'llm_usage');
     }
-    
+
     const result = await this.transactionService.processText(
       dto.input,
       dto.type || 'auto',
@@ -114,6 +129,26 @@ export class AppController {
       expenseCategories,
     );
 
+    return result;
+  }
+
+  @Post('v3/process-audio')
+  @UseInterceptors(FileInterceptor('audio'))
+  async processAudio(
+    @UploadedFile() file: MulterFile,
+    @Body() dto: ProcessAudioDto,
+    @Headers() headers: Record<string, string>,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Audio file is required');
+    }
+
+    const result = await this.transactionServiceV3.processAudio(
+      file,
+      dto.installationId,
+      dto.incomeCategories,
+      dto.expenseCategories,
+    );
     return result;
   }
 }
