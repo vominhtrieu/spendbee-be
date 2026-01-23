@@ -68,6 +68,7 @@ export class TransactionServiceV3 {
       );
       const duration = Date.now() - startTime;
       await this.recordLLMUsage(userId, 'qwen3-32b', result.success, duration);
+      result.transcribedText = transcribedText;
       return result;
     } catch (error) {
       console.error('Error in processAudio:', error);
