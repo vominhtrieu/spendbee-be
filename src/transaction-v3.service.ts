@@ -60,14 +60,14 @@ export class TransactionServiceV3 {
       // Extract transcribed text from response
       const transcribedText = transcription.text;
 
-      const result = await this.processTextWithGemma3(
+      const result = await this.processTextWithQwen(
         transcribedText,
-        'gemma-3-27b-it',
+        'qwen/qwen3-32b',
         incomeCategories,
         expenseCategories,
       );
       const duration = Date.now() - startTime;
-      await this.recordLLMUsage(userId, 'gemma3', result.success, duration);
+      await this.recordLLMUsage(userId, 'qwen3-32b', result.success, duration);
       return result;
     } catch (error) {
       console.error('Error in processAudio:', error);
@@ -81,47 +81,35 @@ export class TransactionServiceV3 {
     }
   }
 
-  async processTextWithGemma3(
+  async processTextWithQwen(
     transcribedText: string, // base64 encoded audio
     modelName: string,
     incomeCategories?: string[],
     expenseCategories?: string[],
   ): Promise<any> {
     try {
-      const systemPrompt = getTransactionParserPromptV2(
-        undefined,
-        incomeCategories,
-        expenseCategories,
-      );
-      const model = this.genAI.getGenerativeModel({
-        model: modelName,
+      const completion = await this.groq.chat.completions.create({
+        model: 'qwen/qwen3-32b',
+        messages: [
+          {
+            role: 'system',
+            content: getTransactionParserPromptV2(
+              undefined,
+              incomeCategories,
+              expenseCategories,
+            ),
+          },
+          {
+            role: 'user',
+            content: transcribedText,
+          },
+        ],
+        temperature: 1,
+        response_format: { type: 'json_object' },
       });
 
-      const result = await model.generateContent([
-        { text: systemPrompt },
-        {
-          text: transcribedText,
-        }
-      ]);
-
-      const response = result.response;
-      const text = response.text();
-
-      // Extract JSON from markdown code blocks if present
-      let jsonText = text.trim();
-      if (jsonText.startsWith('```json')) {
-        jsonText = jsonText
-          .replace(/```json\n?/g, '')
-          .replace(/```$/g, '')
-          .trim();
-      } else if (jsonText.startsWith('```')) {
-        jsonText = jsonText
-          .replace(/```\n?/g, '')
-          .replace(/```$/g, '')
-          .trim();
-      }
-
-      return JSON.parse(jsonText);
+      const response = completion.choices[0]?.message?.content?.trim() || '{}';
+      return JSON.parse(response || '{}');
     } catch (error) {
       console.error('Error in processTextWithGemma3:', error);
       return {
