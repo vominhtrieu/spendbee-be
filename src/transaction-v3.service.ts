@@ -52,9 +52,9 @@ export class TransactionServiceV3 {
       // Create transcription using Groq API
       const transcription = await this.groq.audio.transcriptions.create({
         file: groqFile,
-        model: 'whisper-large-v3-turbo',
+        model: 'whisper-large-v3',
         response_format: 'json',
-        temperature: 0.1,
+        temperature: 0,
       });
 
       // Extract transcribed text from response
