@@ -104,18 +104,18 @@ export class TransactionServiceV3 {
 
       const result = await this.processTextWithGroq(
         transcribedText,
-        'openai/gpt-oss-120b',
+        'openai/gpt-oss-20b',
         incomeCategories,
         expenseCategories,
       );
       const duration = Date.now() - startTime;
-      await this.recordLLMUsage(userId, 'openai/gpt-oss-120b', result.success, duration);
+      await this.recordLLMUsage(userId, 'openai/gpt-oss-20b', result.success, duration);
       result.transcribedText = transcribedText;
       return result;
     } catch (error) {
       console.error('Error in processAudio:', error);
       const duration = Date.now() - startTime;
-      await this.recordLLMUsage(userId, 'openai/gpt-oss-120b', false, duration);
+      await this.recordLLMUsage(userId, 'openai/gpt-oss-20b', false, duration);
       return {
         success: false,
         type: 'system',
