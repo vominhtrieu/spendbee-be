@@ -102,20 +102,20 @@ export class TransactionServiceV3 {
     try {
       const transcribedText = await this.transcribeWithElevenLabs(file);
 
-      const result = await this.processTextWithQwen(
+      const result = await this.processTextWithGroq(
         transcribedText,
-        'qwen/qwen3-32b',
+        'openai/gpt-oss-120b',
         incomeCategories,
         expenseCategories,
       );
       const duration = Date.now() - startTime;
-      await this.recordLLMUsage(userId, 'qwen3-32b', result.success, duration);
+      await this.recordLLMUsage(userId, 'openai/gpt-oss-120b', result.success, duration);
       result.transcribedText = transcribedText;
       return result;
     } catch (error) {
       console.error('Error in processAudio:', error);
       const duration = Date.now() - startTime;
-      await this.recordLLMUsage(userId, 'qwen3-32b', false, duration);
+      await this.recordLLMUsage(userId, 'openai/gpt-oss-120b', false, duration);
       return {
         success: false,
         type: 'system',
@@ -124,7 +124,7 @@ export class TransactionServiceV3 {
     }
   }
 
-  async processTextWithQwen(
+  async processTextWithGroq(
     transcribedText: string, // base64 encoded audio
     modelName: string,
     incomeCategories?: string[],
