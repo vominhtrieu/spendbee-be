@@ -53,8 +53,7 @@ export class TransactionServiceV3 {
       const transcription = await this.groq.audio.transcriptions.create({
         file: groqFile,
         model: 'whisper-large-v3',
-        response_format: 'json',
-        temperature: 0.5,
+        response_format: 'json'
       });
 
       // Extract transcribed text from response
