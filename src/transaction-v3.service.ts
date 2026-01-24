@@ -54,7 +54,7 @@ export class TransactionServiceV3 {
         file: groqFile,
         model: 'whisper-large-v3',
         response_format: 'json',
-        temperature: 0,
+        temperature: 0.5,
       });
 
       // Extract transcribed text from response
