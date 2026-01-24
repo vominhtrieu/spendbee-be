@@ -73,7 +73,7 @@ export class TransactionServiceV3 {
 
     if (res.ok) {
       const data = (await res.json()) as { text?: string };
-      return data.text ?? '';
+      return data.text?.replaceAll("?", ".") ?? '';
     }
 
     const status = res.status;
