@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getTransactionParserPromptV2 } from './prompts/transaction-parser.prompt';
 import { PrismaService } from './prisma/prisma.service';
-import Groq, { toFile } from "groq-sdk";
+import Groq from 'groq-sdk';
 
 interface MulterFile {
   fieldname: string;
@@ -17,10 +17,16 @@ interface MulterFile {
   path?: string;
 }
 
+const ELEVENLABS_STT_URL = 'https://api.elevenlabs.io/v1/speech-to-text';
+
 @Injectable()
 export class TransactionServiceV3 {
   private genAI: GoogleGenerativeAI;
   private groq: Groq;
+  private elevenLabsApiKeys: string[];
+  /** Index of the current ElevenLabs API key. On rotatable error, advance by 1 and wrap to 0 when past end. */
+  private elevenLabsCurrentKeyIndex = 0;
+
   constructor(
     private configService: ConfigService,
     private prisma: PrismaService,
@@ -31,6 +37,59 @@ export class TransactionServiceV3 {
     this.groq = new Groq({
       apiKey: this.configService.get<string>('GROQ_API_KEY') || '',
     });
+    const keysRaw = this.configService.get<string>('ELEVENLABS_API_KEYS') || '';
+    this.elevenLabsApiKeys = keysRaw
+      .split(',')
+      .map((k) => k.trim())
+      .filter(Boolean);
+  }
+
+  /**
+   * Transcribe audio using ElevenLabs Speech-to-Text.
+   * Uses the stored key index; if the key works, keep it. On 401/429/5xx, advance index by 1
+   * (wrapping to 0 when past the end) for the next call.
+   */
+  private async transcribeWithElevenLabs(file: MulterFile): Promise<string> {
+    if (this.elevenLabsApiKeys.length === 0) {
+      throw new Error('ELEVENLABS_API_KEYS is not configured (comma-separated)');
+    }
+
+    const keyIndex = this.elevenLabsCurrentKeyIndex;
+    const formData = new FormData();
+    formData.append('model_id', 'scribe_v2');
+    formData.append(
+      'file',
+      new Blob([new Uint8Array(file.buffer)], {
+        type: file.mimetype || 'audio/mpeg',
+      }),
+      file.originalname || 'audio',
+    );
+
+    const res = await fetch(ELEVENLABS_STT_URL, {
+      method: 'POST',
+      headers: { 'xi-api-key': this.elevenLabsApiKeys[keyIndex] },
+      body: formData,
+    });
+
+    if (res.ok) {
+      const data = (await res.json()) as { text?: string };
+      return data.text ?? '';
+    }
+
+    const status = res.status;
+    const body = await res.text();
+    const isRotatable =
+      status === 401 || status === 429 || (status >= 500 && status < 600);
+    const err = new Error(`ElevenLabs STT failed: ${status} ${body}`);
+
+    if (isRotatable) {
+      this.elevenLabsCurrentKeyIndex =
+        (this.elevenLabsCurrentKeyIndex + 1) % this.elevenLabsApiKeys.length;
+      console.warn(
+        `[TransactionServiceV3] ElevenLabs key rotated: ${keyIndex} -> ${this.elevenLabsCurrentKeyIndex} (status ${status})`,
+      );
+    }
+    throw err;
   }
 
   async processAudio(
@@ -41,24 +100,7 @@ export class TransactionServiceV3 {
   ): Promise<any> {
     const startTime = Date.now();
     try {
-      // Get file extension from original filename or use mime type
-      const filename = file.originalname || 'audio';
-      const extension = filename.split('.').pop() || 'mp3';
-      const mimeType = file.mimetype || `audio/${extension}`;
-
-      // Convert Buffer to File using toFile utility from Groq SDK
-      const groqFile = await toFile(file.buffer, filename, { type: mimeType });
-
-      // Create transcription using Groq API
-      const transcription = await this.groq.audio.transcriptions.create({
-        file: groqFile,
-        model: 'whisper-large-v3',
-        language: "vi",
-        response_format: 'json',
-      });
-
-      // Extract transcribed text from response
-      const transcribedText = transcription.text;
+      const transcribedText = await this.transcribeWithElevenLabs(file);
 
       const result = await this.processTextWithQwen(
         transcribedText,
@@ -73,7 +115,7 @@ export class TransactionServiceV3 {
     } catch (error) {
       console.error('Error in processAudio:', error);
       const duration = Date.now() - startTime;
-      await this.recordLLMUsage(userId, 'gemma3', false, duration);
+      await this.recordLLMUsage(userId, 'qwen3-32b', false, duration);
       return {
         success: false,
         type: 'system',
