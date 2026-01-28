@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Headers, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Headers, UseInterceptors, UploadedFile, Req } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AppService } from './app.service';
 import { TransactionService } from './transaction.service';
@@ -6,6 +6,7 @@ import { TransactionServiceV2 } from './transaction-v2.service';
 import { ProcessTextDto, ProcessTextV2Dto, ProcessAudioDto } from './sentiment.dto';
 import { BadRequestException } from '@nestjs/common';
 import { TransactionServiceV3 } from './transaction-v3.service';
+import type { Request } from 'express';
 
 interface MulterFile {
   fieldname: string;
@@ -34,14 +35,41 @@ export class AppController {
   }
 
   @Post('ping')
-  async ping(@Body() body: Record<string, any>, @Headers() headers: Record<string, string>) {
+  async ping(
+    @Body() body: Record<string, any>,
+    @Headers() headers: Record<string, string>,
+    @Req() req: Request,
+  ) {
     console.log(new Date(), 'Request Headers: ', headers);
     console.log(new Date(), 'Request Body: ', body);
 
     const installationId = body.installationId;
     const appVersion = body.appVersion;
+
+    const ipFromHeaders =
+      (headers['x-forwarded-for'] as string | undefined) ||
+      (headers['cf-connecting-ip'] as string | undefined) ||
+      (headers['x-real-ip'] as string | undefined);
+
+    const ipAddress =
+      (ipFromHeaders ? ipFromHeaders.split(',')[0].trim() : undefined) ||
+      req.ip ||
+      (req.socket && req.socket.remoteAddress) ||
+      undefined;
+
+    const userAgent = (headers['user-agent'] as string | undefined) || '';
+    const deviceType = this.getDeviceTypeFromUserAgent(userAgent);
+
     if (installationId) {
-      const user = await this.appService.upsertUser(installationId, appVersion);
+      const { city, country } = await this.appService.getLocationFromIp(ipAddress);
+
+      const user = await this.appService.upsertUser(
+        installationId,
+        appVersion,
+        deviceType,
+        city,
+        country,
+      );
       await this.appService.recordInteraction(user.id, 'ping');
     }
 
@@ -150,5 +178,27 @@ export class AppController {
       dto.expenseCategories,
     );
     return result;
+  }
+
+  private getDeviceTypeFromUserAgent(userAgent: string): string {
+    const ua = userAgent.toLowerCase();
+
+    if (!ua) {
+      return 'unknown';
+    }
+
+    if (ua.includes('mobile') || ua.includes('iphone') || ua.includes('android')) {
+      return 'mobile';
+    }
+
+    if (ua.includes('ipad') || ua.includes('tablet')) {
+      return 'tablet';
+    }
+
+    if (ua.includes('windows') || ua.includes('macintosh') || ua.includes('linux')) {
+      return 'desktop';
+    }
+
+    return 'unknown';
   }
 }

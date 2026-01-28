@@ -11,11 +11,14 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(uuid())
-  installationId  String   @unique
-  appVersion    String
-  lastAccess    DateTime @default(now()) @updatedAt
-  createdAt     DateTime @default(now())
+  id             String   @id @default(uuid())
+  installationId String   @unique
+  appVersion     String
+  deviceType     String?
+  city           String?
+  country        String?
+  lastAccess     DateTime @default(now()) @updatedAt
+  createdAt      DateTime @default(now())
 
   @@map("users")
 }
