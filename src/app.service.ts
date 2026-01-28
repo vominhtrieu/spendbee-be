@@ -70,7 +70,7 @@ export class AppService {
       // Docs: https://ipgeolocation.io/documentation/ip-geolocation-api.html
       const url = `https://api.ipgeolocation.io/ipgeo?apiKey=${encodeURIComponent(
         apiKey,
-      )}&ip=${encodeURIComponent(ipAddress)}&fields=city,country_name`;
+      )}&ip=${encodeURIComponent(ipAddress)}&fields=state_prov,country_name`;
 
       const response = await fetchFn(url);
       if (!response.ok) {
@@ -80,8 +80,8 @@ export class AppService {
       const data = (await response.json()) as any;
 
       const city =
-        data && typeof data.city === 'string' && data.city.length > 0
-          ? data.city
+        data && typeof data.state_prov === 'string' && data.state_prov.length > 0
+          ? data.state_prov
           : undefined;
       const country =
         data && typeof data.country_name === 'string' && data.country_name.length > 0

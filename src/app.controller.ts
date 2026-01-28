@@ -68,10 +68,8 @@ export class AppController {
       );
 
       // Only fetch and update location if country is not already set
-      if (!user.country) {
-        const { city, country } = await this.appService.getLocationFromIp(ipAddress);
-        await this.appService.updateUserLocation(user.id, city, country);
-      }
+      const { city, country } = await this.appService.getLocationFromIp(ipAddress);
+      await this.appService.updateUserLocation(user.id, city, country);
 
       await this.appService.recordInteraction(user.id, 'ping');
     }
