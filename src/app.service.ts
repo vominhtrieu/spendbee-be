@@ -18,23 +18,33 @@ export class AppService {
   ) {
     const now = new Date();
     const userDelegate: any = this.prisma.user as any;
+    const updateData: any = {
+      lastAccess: now,
+      appVersion: appVersion || 'unknown',
+      deviceType,
+    };
+
+    const createData: any = {
+      installationId,
+      lastAccess: now,
+      appVersion: appVersion || 'unknown',
+      deviceType,
+    };
+
+    if (city !== undefined) {
+      updateData.city = city;
+      createData.city = city;
+    }
+
+    if (country !== undefined) {
+      updateData.country = country;
+      createData.country = country;
+    }
+
     return userDelegate.upsert({
       where: { installationId },
-      update: {
-        lastAccess: now,
-        appVersion: appVersion || 'unknown',
-        deviceType,
-        city,
-        country,
-      },
-      create: {
-        installationId,
-        lastAccess: now,
-        appVersion: appVersion || 'unknown',
-        deviceType,
-        city,
-        country,
-      },
+      update: updateData,
+      create: createData,
     });
   }
 
@@ -51,30 +61,55 @@ export class AppService {
         return {};
       }
 
-      // Uses ip-api.com free endpoint (no API key, HTTP only)
-      // Docs: http://ip-api.com/docs/api:json
-      const response = await fetchFn(`http://ip-api.com/json/${encodeURIComponent(ipAddress)}`);
+      const apiKey = process.env.IPGEOLOCATION_API_KEY;
+      if (!apiKey) {
+        return {};
+      }
+
+      // Uses ipgeolocation.io API
+      // Docs: https://ipgeolocation.io/documentation/ip-geolocation-api.html
+      const url = `https://api.ipgeolocation.io/ipgeo?apiKey=${encodeURIComponent(
+        apiKey,
+      )}&ip=${encodeURIComponent(ipAddress)}&fields=city,country_name`;
+
+      const response = await fetchFn(url);
       if (!response.ok) {
         return {};
       }
 
       const data = (await response.json()) as any;
 
-      if (!data || data.status !== 'success') {
-        return {};
-      }
-
       const city =
-        typeof data.city === 'string' && data.city.length > 0 ? data.city : undefined;
+        data && typeof data.city === 'string' && data.city.length > 0
+          ? data.city
+          : undefined;
       const country =
-        typeof data.country === 'string' && data.country.length > 0
-          ? data.country
+        data && typeof data.country_name === 'string' && data.country_name.length > 0
+          ? data.country_name
           : undefined;
 
       return { city, country };
     } catch {
       return {};
     }
+  }
+
+  async updateUserLocation(
+    userId: string,
+    city?: string,
+    country?: string,
+  ): Promise<void> {
+    if (!city && !country) {
+      return;
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(city ? { city } : {}),
+        ...(country ? { country } : {}),
+      },
+    });
   }
 
   async recordInteraction(userId: string, type: 'ping' | 'llm_usage'): Promise<void> {
