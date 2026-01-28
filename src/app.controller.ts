@@ -187,21 +187,17 @@ export class AppController {
     const ua = userAgent.toLowerCase();
 
     if (!ua) {
-      return 'unknown';
+      // Client is always a mobile app; if we can't detect, default to iOS
+      return 'ios';
     }
 
-    if (ua.includes('mobile') || ua.includes('iphone') || ua.includes('android')) {
-      return 'mobile';
+    const isAndroid = ua.includes('android') || ua.includes('okhttp');
+
+    if (isAndroid) {
+      return 'android';
     }
 
-    if (ua.includes('ipad') || ua.includes('tablet')) {
-      return 'tablet';
-    }
-
-    if (ua.includes('windows') || ua.includes('macintosh') || ua.includes('linux')) {
-      return 'desktop';
-    }
-
-    return 'unknown';
+    // If it's not clearly Android, treat it as iOS
+    return 'ios';
   }
 }
