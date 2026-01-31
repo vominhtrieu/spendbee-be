@@ -3,7 +3,12 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { AppService } from './app.service';
 import { TransactionService } from './transaction.service';
 import { TransactionServiceV2 } from './transaction-v2.service';
-import { ProcessTextDto, ProcessTextV2Dto, ProcessAudioDto } from './sentiment.dto';
+import {
+  ProcessTextDto,
+  ProcessTextV2Dto,
+  ProcessAudioDto,
+  ProcessImageDto,
+} from './sentiment.dto';
 import { BadRequestException } from '@nestjs/common';
 import { TransactionServiceV3 } from './transaction-v3.service';
 import type { Request } from 'express';
@@ -177,6 +182,26 @@ export class AppController {
     }
 
     const result = await this.transactionServiceV3.processAudio(
+      file,
+      dto.installationId,
+      dto.incomeCategories,
+      dto.expenseCategories,
+    );
+    return result;
+  }
+
+  @Post('v3/process-image')
+  @UseInterceptors(FileInterceptor('image'))
+  async processImage(
+    @UploadedFile() file: MulterFile,
+    @Body() dto: ProcessImageDto,
+    @Headers() headers: Record<string, string>,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Image file is required');
+    }
+
+    const result = await this.transactionServiceV3.processImage(
       file,
       dto.installationId,
       dto.incomeCategories,

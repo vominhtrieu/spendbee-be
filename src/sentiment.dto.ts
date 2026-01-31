@@ -15,3 +15,10 @@ export class ProcessAudioDto {
   incomeCategories?: string[];
   expenseCategories?: string[];
 }
+
+export class ProcessImageDto {
+  type?: 'auto' | 'openrouter' | 'gemma3';
+  installationId?: string;
+  incomeCategories?: string[];
+  expenseCategories?: string[];
+}

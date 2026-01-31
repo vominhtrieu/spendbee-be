@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { getTransactionParserPromptV2 } from './prompts/transaction-parser.prompt';
+import {
+  getTransactionParserPromptV2,
+  getTransactionParserPromptForImage,
+} from './prompts/transaction-parser.prompt';
 import { PrismaService } from './prisma/prisma.service';
 import Groq from 'groq-sdk';
 
@@ -116,6 +119,92 @@ export class TransactionServiceV3 {
       console.error('Error in processAudio:', error);
       const duration = Date.now() - startTime;
       await this.recordLLMUsage(userId, 'openai/gpt-oss-20b', false, duration);
+      return {
+        success: false,
+        type: 'system',
+        transactions: [],
+      };
+    }
+  }
+
+  private static readonly ALLOWED_IMAGE_MIMES = [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/gif',
+  ];
+
+  private static readonly GEMINI_IMAGE_MODEL = 'gemini-2.5-flash';
+
+  async processImage(
+    file: MulterFile,
+    userId?: string,
+    incomeCategories?: string[],
+    expenseCategories?: string[],
+  ): Promise<any> {
+    const startTime = Date.now();
+    try {
+      const mime = (file.mimetype || '').toLowerCase();
+      if (!TransactionServiceV3.ALLOWED_IMAGE_MIMES.includes(mime)) {
+        throw new Error(
+          `Unsupported image type: ${file.mimetype}. Allowed: ${TransactionServiceV3.ALLOWED_IMAGE_MIMES.join(', ')}`,
+        );
+      }
+
+      const prompt = getTransactionParserPromptForImage(
+        undefined,
+        incomeCategories,
+        expenseCategories,
+      );
+
+      const model = this.genAI.getGenerativeModel({
+        model: TransactionServiceV3.GEMINI_IMAGE_MODEL,
+      });
+
+      const imagePart = {
+        inlineData: {
+          data: file.buffer.toString('base64'),
+          mimeType: mime,
+        },
+      };
+
+      const result = await model.generateContent([
+        { text: prompt },
+        { text: 'Analyze the following image and extract transaction(s).' },
+        imagePart,
+      ]);
+
+      const response = result.response;
+      const text = response.text()?.trim() ?? '{}';
+
+      let jsonText = text;
+      if (jsonText.startsWith('```json')) {
+        jsonText = jsonText
+          .replace(/```json\n?/g, '')
+          .replace(/```$/g, '')
+          .trim();
+      } else if (jsonText.startsWith('```')) {
+        jsonText = jsonText.replace(/```\n?/g, '').replace(/```$/g, '').trim();
+      }
+
+      const parsed = JSON.parse(jsonText || '{}');
+      const duration = Date.now() - startTime;
+      await this.recordLLMUsage(
+        userId,
+        TransactionServiceV3.GEMINI_IMAGE_MODEL,
+        parsed.success === true,
+        duration,
+      );
+      return parsed;
+    } catch (error) {
+      console.error('Error in processImage:', error);
+      const duration = Date.now() - startTime;
+      await this.recordLLMUsage(
+        userId,
+        TransactionServiceV3.GEMINI_IMAGE_MODEL,
+        false,
+        duration,
+      );
       return {
         success: false,
         type: 'system',
