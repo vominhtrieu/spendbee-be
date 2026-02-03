@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import {
   getTransactionParserPromptV2,
   getTransactionParserPromptForImage,
@@ -24,7 +23,6 @@ const ELEVENLABS_STT_URL = 'https://api.elevenlabs.io/v1/speech-to-text';
 
 @Injectable()
 export class TransactionServiceV3 {
-  private genAI: GoogleGenerativeAI;
   private groq: Groq;
   private elevenLabsApiKeys: string[];
   /** Index of the current ElevenLabs API key. On rotatable error, advance by 1 and wrap to 0 when past end. */
@@ -34,9 +32,6 @@ export class TransactionServiceV3 {
     private configService: ConfigService,
     private prisma: PrismaService,
   ) {
-    this.genAI = new GoogleGenerativeAI(
-      this.configService.get<string>('GOOGLE_API_KEY') || '',
-    );
     this.groq = new Groq({
       apiKey: this.configService.get<string>('GROQ_API_KEY') || '',
     });
@@ -134,7 +129,8 @@ export class TransactionServiceV3 {
     'image/gif',
   ];
 
-  private static readonly GEMINI_IMAGE_MODEL = 'gemini-2.5-flash';
+  private static readonly GROQ_IMAGE_MODEL =
+    'meta-llama/llama-4-scout-17b-16e-instruct';
 
   async processImage(
     file: MulterFile,
@@ -157,41 +153,42 @@ export class TransactionServiceV3 {
         expenseCategories,
       );
 
-      const model = this.genAI.getGenerativeModel({
-        model: TransactionServiceV3.GEMINI_IMAGE_MODEL,
+      const base64Image = file.buffer.toString('base64');
+
+      const completion = await this.groq.chat.completions.create({
+        model: TransactionServiceV3.GROQ_IMAGE_MODEL,
+        messages: [
+          {
+            role: 'system',
+            content: prompt,
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Analyze the following image and extract transaction(s).',
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:${mime};base64,${base64Image}`,
+                },
+              },
+            ],
+          },
+        ],
+        temperature: 1,
+        response_format: { type: 'json_object' },
       });
 
-      const imagePart = {
-        inlineData: {
-          data: file.buffer.toString('base64'),
-          mimeType: mime,
-        },
-      };
-
-      const result = await model.generateContent([
-        { text: prompt },
-        { text: 'Analyze the following image and extract transaction(s).' },
-        imagePart,
-      ]);
-
-      const response = result.response;
-      const text = response.text()?.trim() ?? '{}';
-
-      let jsonText = text;
-      if (jsonText.startsWith('```json')) {
-        jsonText = jsonText
-          .replace(/```json\n?/g, '')
-          .replace(/```$/g, '')
-          .trim();
-      } else if (jsonText.startsWith('```')) {
-        jsonText = jsonText.replace(/```\n?/g, '').replace(/```$/g, '').trim();
-      }
-
-      const parsed = JSON.parse(jsonText || '{}');
+      const responseText =
+        completion.choices[0]?.message?.content?.trim() || '{}';
+      const parsed = JSON.parse(responseText || '{}');
       const duration = Date.now() - startTime;
       await this.recordLLMUsage(
         userId,
-        TransactionServiceV3.GEMINI_IMAGE_MODEL,
+        TransactionServiceV3.GROQ_IMAGE_MODEL,
         parsed.success === true,
         duration,
       );
@@ -201,7 +198,7 @@ export class TransactionServiceV3 {
       const duration = Date.now() - startTime;
       await this.recordLLMUsage(
         userId,
-        TransactionServiceV3.GEMINI_IMAGE_MODEL,
+        TransactionServiceV3.GROQ_IMAGE_MODEL,
         false,
         duration,
       );
